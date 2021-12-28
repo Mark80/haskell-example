@@ -72,6 +72,9 @@ reference2P =
       dx = intP
    in ((,) <$> px) <*> dx
 
+openTag :: Parser String
+openTag = charP '<' *> whileP (/= '>') <* charP '>'
+
 referenceP :: Parser (String, Int)
 referenceP = Parser p
   where
