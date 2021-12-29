@@ -1,6 +1,7 @@
 module Parser.Combinator where
 
-import Data.Char (isAlpha, isDigit)
+import Control.Applicative (liftA2)
+import Data.Char (isAlpha, isDigit, isLetter)
 
 newtype Parser a = Parser (String -> (Either String a, String))
 
@@ -10,19 +11,10 @@ charP c = Parser p
     p "" = (Left "aspetto una stringa non vuota", "")
     p (x : xs)
       | x == c = (Right [x], xs)
-      | otherwise = (Left "aspetto una carattere uguale a c", "")
+      | otherwise = (Left ("aspetto una carattere uguale a:" ++ show c), "")
 
 instance Semigroup a => Semigroup (Parser a) where
-  Parser sx <> Parser dx = Parser p
-    where
-      p s = case sx s of
-        (Right x, s') ->
-          case dx s' of
-            (Right y, s'') ->
-              (Right $ x <> y, s'')
-            (Left e, _) -> (Left e, s)
-        (Left e, _) ->
-          (Left e, s)
+  (<>) = liftA2 (<>)
 
 instance Functor Parser where
   fmap f (Parser pa) = Parser p
@@ -42,15 +34,23 @@ instance Applicative Parser where
         case ps s of
           (Right f, s') ->
             case pd s' of
-              (Right b, s'') ->
-                (Right $ f b, s'')
-              (Left err, _) ->
-                (Left err, s)
-          (Left err, _) ->
-            (Left err, s)
+              (Right b, s'') -> (Right $ f b, s'')
+              (Left err, _) -> (Left err, s)
+          (Left err, _) -> (Left err, s)
+
+instance Monad Parser where
+  (Parser pa) >>= f = Parser p
+    where
+      p s =
+        case pa s of
+          (Right a, s') -> runParser (f a) s'
+          (Left err, _) -> (Left err, s)
 
 instance Monoid a => Monoid (Parser a) where
-  mempty = Parser (\_ -> (Right mempty, ""))
+  mempty = alwaysP mempty
+
+alwaysP :: a -> Parser a
+alwaysP = Parser . (,) . Right
 
 intP :: Parser Int
 intP = fmap read (whileP isDigit)
@@ -63,17 +63,19 @@ whileP f = Parser p
        in (Right l, r)
 
 stringP :: String -> Parser String
-stringP "" = mempty
-stringP (h : t) = charP h <> stringP t
+stringP = foldMap charP
 
 reference2P :: Parser (String, Int)
 reference2P =
   let px = (whileP isAlpha)
       dx = intP
-   in ((,) <$> px) <*> dx
+   in (fmap (,) px) <*> dx
 
 openTag :: Parser String
-openTag = charP '<' *> whileP (/= '>') <* charP '>'
+openTag = charP '<' *> whileP isLetter <* charP '>'
+
+closeTag :: String -> Parser String
+closeTag s = stringP "</" *> stringP s <* charP '>'
 
 referenceP :: Parser (String, Int)
 referenceP = Parser p
@@ -96,3 +98,15 @@ runParser (Parser f) = f
 
 execParser :: Parser a -> String -> Either String a
 execParser p s = (fst . runParser p) s
+
+data XML = XMLElement String [XML]
+  deriving (Eq, Show)
+
+xmlP2 :: Parser XML
+xmlP2 = XMLElement <$> (openTag >>= closeTag) <*> pure []
+
+xmlP :: Parser XML
+xmlP = do
+  ot <- openTag
+  ct <- closeTag ot
+  return $ XMLElement ct []
