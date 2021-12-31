@@ -2,6 +2,7 @@ module ParserSpec where
 
 import Test.Hspec
 import Parser.Combinator
+import Data.Char (isLetter)
 
 spec :: Spec
 spec = do
@@ -15,6 +16,9 @@ spec = do
     it "should parse reference 2" $ runParser reference2P "H2" `shouldBe` (Right  ("H", 2), "")
     it "should parse open tag " $ runParser openTag "<tag>" `shouldBe` (Right  "tag", "")
     it "should parse close tag " $ runParser (closeTag "foo") "</foo>" `shouldBe` (Right  "foo", "")
-    it "should parse xml" $ runParser xmlP "<tag></tag>"  `shouldBe` (Right  (XMLElement "tag" []), "")
+    --it "should parse xml" $ runParser xmlTextP "</tag>"  `shouldBe` (Right (XMLText ""),"</tag>")
+    it "should parse xml" $ runParser (whileP isLetter) ""  `shouldBe` (Right (""),"")
+    it "should parse xml" $ runParser xmlElementP "<tag></tag>"  `shouldBe` (Right  (XMLElement "tag" []), "")
+    it "should parse xml" $ runParser xmlElementP "<tag>ciccio</tag>"  `shouldBe` (Right  (XMLElement "tag" [XMLText "ciccio"]), "")
 
 

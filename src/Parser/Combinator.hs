@@ -1,7 +1,8 @@
 module Parser.Combinator where
 
-import Control.Applicative (liftA2)
+import Control.Applicative (liftA2, many, (<|>))
 import Data.Char (isAlpha, isDigit, isLetter)
+import GHC.Base (Alternative, empty)
 
 newtype Parser a = Parser (String -> (Either String a, String))
 
@@ -49,11 +50,31 @@ instance Monad Parser where
 instance Monoid a => Monoid (Parser a) where
   mempty = alwaysP mempty
 
+instance Alternative Parser where
+  empty = neverP "error"
+
+  Parser ps <|> Parser pd = Parser p
+    where
+      p s = case ps s of
+        (Right a, s') -> (Right a, s')
+        (Left _, _) -> case pd s of
+          (Right b, s'') -> (Right b, s'')
+          (Left err, _) -> (Left err, s)
+
 alwaysP :: a -> Parser a
 alwaysP = Parser . (,) . Right
 
+neverP :: String -> Parser a
+neverP = Parser . (,) . Left
+
 intP :: Parser Int
 intP = fmap read (whileP isDigit)
+
+while1P :: (Char -> Bool) -> Parser String
+while1P f = whenP (whileP f) (not . null) "error"
+
+whenP :: Parser a -> (a -> Bool) -> String -> Parser a
+whenP p f e = p >>= (\a -> if f a then alwaysP a else neverP e)
 
 whileP :: (Char -> Bool) -> Parser String
 whileP f = Parser p
@@ -77,6 +98,12 @@ openTag = charP '<' *> whileP isLetter <* charP '>'
 closeTag :: String -> Parser String
 closeTag s = stringP "</" *> stringP s <* charP '>'
 
+xmlTextP2 :: Parser XML
+xmlTextP2 = fmap XMLText ((whileP (/= '<')) >>= (\a -> if (not . null) a then alwaysP a else neverP "error"))
+
+xmlTextP :: Parser XML
+xmlTextP = fmap XMLText (while1P (/= '<'))
+
 referenceP :: Parser (String, Int)
 referenceP = Parser p
   where
@@ -99,14 +126,18 @@ runParser (Parser f) = f
 execParser :: Parser a -> String -> Either String a
 execParser p s = (fst . runParser p) s
 
-data XML = XMLElement String [XML]
+data XML
+  = XMLElement String [XML]
+  | XMLText String
   deriving (Eq, Show)
 
-xmlP2 :: Parser XML
-xmlP2 = XMLElement <$> (openTag >>= closeTag) <*> pure []
-
 xmlP :: Parser XML
-xmlP = do
-  ot <- openTag
-  ct <- closeTag ot
-  return $ XMLElement ct []
+xmlP =  xmlTextP <|> xmlTextP
+
+xmlElementP :: Parser XML
+xmlElementP =
+    do
+      ot <- openTag
+      c <- many xmlP
+      ct <- closeTag ot
+      return $ XMLElement ct c
