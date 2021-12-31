@@ -70,11 +70,28 @@ neverP = Parser . (,) . Left
 intP :: Parser Int
 intP = fmap read (whileP isDigit)
 
+lexP :: String -> Parser String
+lexP s = spaceP *> stringP s <* spaceP
+
+spaceP :: Parser String
+spaceP = whileP (flip elem " \n\t")
+
 while1P :: (Char -> Bool) -> Parser String
 while1P f = whenP (whileP f) (not . null) "error"
 
 whenP :: Parser a -> (a -> Bool) -> String -> Parser a
 whenP p f e = p >>= (\a -> if f a then alwaysP a else neverP e)
+
+notP :: Parser String -> Parser String
+notP (Parser pa) = Parser p
+  where p s@(x : xs) = case pa s of
+                        (Right _, _) ->
+                          (Left "error", s)
+                        (Left _, _) ->
+                          (Right [x], xs)
+
+between :: Parser a -> Parser String -> Parser String -> Parser String
+between l e r = l *> (mconcat <$>  many ((e *> r) <|> notP r)) <* r
 
 whileP :: (Char -> Bool) -> Parser String
 whileP f = Parser p
@@ -93,10 +110,10 @@ reference2P =
    in (fmap (,) px) <*> dx
 
 openTag :: Parser String
-openTag = charP '<' *> whileP isLetter <* charP '>'
+openTag = lexP "<" *> whileP isLetter <* lexP ">"
 
 closeTag :: String -> Parser String
-closeTag s = stringP "</" *> stringP s <* charP '>'
+closeTag s = lexP "</" *> stringP s <* lexP ">"
 
 xmlTextP2 :: Parser XML
 xmlTextP2 = fmap XMLText ((whileP (/= '<')) >>= (\a -> if (not . null) a then alwaysP a else neverP "error"))
@@ -132,12 +149,12 @@ data XML
   deriving (Eq, Show)
 
 xmlP :: Parser XML
-xmlP =  xmlTextP <|> xmlTextP
+xmlP = xmlElementP <|> xmlTextP
 
 xmlElementP :: Parser XML
 xmlElementP =
-    do
-      ot <- openTag
-      c <- many xmlP
-      ct <- closeTag ot
-      return $ XMLElement ct c
+  do
+    ot <- openTag
+    c <- many xmlP
+    ct <- closeTag ot
+    return $ XMLElement ct c
