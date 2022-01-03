@@ -84,14 +84,15 @@ whenP p f e = p >>= (\a -> if f a then alwaysP a else neverP e)
 
 notP :: Parser String -> Parser String
 notP (Parser pa) = Parser p
-  where p s@(x : xs) = case pa s of
-                        (Right _, _) ->
-                          (Left "error", s)
-                        (Left _, _) ->
-                          (Right [x], xs)
+  where
+    p s@(x : xs) = case pa s of
+      (Right _, _) ->
+        (Left "error", s)
+      (Left _, _) ->
+        (Right [x], xs)
 
 between :: Parser a -> Parser String -> Parser String -> Parser String
-between l e r = l *> (mconcat <$>  many ((e *> r) <|> notP r)) <* r
+between l e r = l *> (mconcat <$> many ((e *> r) <|> notP r)) <* r
 
 whileP :: (Char -> Bool) -> Parser String
 whileP f = Parser p
@@ -109,8 +110,11 @@ reference2P =
       dx = intP
    in (fmap (,) px) <*> dx
 
-openTag :: Parser String
-openTag = lexP "<" *> whileP isLetter <* lexP ">"
+openTag :: Parser (String, [XMLAttribute])
+openTag = do
+  op <- lexP "<" *> whileP isLetter 
+  attr <- (many attributeP) <* lexP ">"
+  return (op, attr)
 
 closeTag :: String -> Parser String
 closeTag s = lexP "</" *> stringP s <* lexP ">"
@@ -143,18 +147,36 @@ runParser (Parser f) = f
 execParser :: Parser a -> String -> Either String a
 execParser p s = (fst . runParser p) s
 
+type Key = String
+
+type Value = String
+
+type XMLAttribute = (Key, Value)
+
 data XML
-  = XMLElement String [XML]
+  = XMLElement String [XMLAttribute] [XML]
   | XMLText String
   deriving (Eq, Show)
 
 xmlP :: Parser XML
 xmlP = xmlElementP <|> xmlTextP
 
+nameP :: Parser String
+nameP = spaceP *> whileP (/= '=')
+
+valueP :: Parser String
+valueP = lexP "=" *> between (lexP "\"") (lexP "\\") (lexP "\"")
+
+attributeP :: Parser XMLAttribute
+attributeP = do
+  name <- nameP
+  value <- valueP
+  return (name, value)
+
 xmlElementP :: Parser XML
 xmlElementP =
   do
-    ot <- openTag
+    (ot, attrs) <- openTag
     c <- many xmlP
     ct <- closeTag ot
-    return $ XMLElement ct c
+    return $ XMLElement ct attrs c
