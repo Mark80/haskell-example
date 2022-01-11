@@ -112,7 +112,7 @@ reference2P =
 
 openTag :: Parser (String, [XMLAttribute])
 openTag = do
-  op <- lexP "<" *> whileP isLetter 
+  op <- lexP "<" *> whileP isLetter
   attr <- (many attributeP) <* lexP ">"
   return (op, attr)
 
@@ -180,3 +180,8 @@ xmlElementP =
     c <- many xmlP
     ct <- closeTag ot
     return $ XMLElement ct attrs c
+
+double :: [a] -> [(a, a)]
+double l = do
+  el <- l
+  return (el, el)

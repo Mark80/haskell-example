@@ -26,9 +26,9 @@ spec = do
     it "should parse attribute name" $ runParser nameP "foo=\"bar\""   `shouldBe` (Right  "foo", "=\"bar\"")
     it "should parse attribute name" $ runParser valueP "=\"bar\""   `shouldBe` (Right  "bar", "")
     it "should parse attribute" $ runParser attributeP "foo=\"bar\""   `shouldBe` (Right  ("foo", "bar"), "")
-    it "should parse nested xml" $ runParser xmlElementP "<tag foo=\"eccomi\"></tag>"  `shouldBe` (Right  (XMLElement "tag" [("foo", "eccomi")] []), "")
-
-
+    it "should parse tag with atrribute" $ runParser xmlElementP "<tag foo=\"eccomi\" foo2=\"eccomi2\"></tag>"  `shouldBe` (Right  (XMLElement "tag" [("foo", "eccomi"),("foo2", "eccomi2")] []), "")
+    it "should create double list" $ double [1,2,3,4]  `shouldBe`[(1,1),(2,2),(3,3),(4,4)] 
+    it "should create double list" $ double ["1","2","3","4"]  `shouldBe`[("1","1"),("2","2"),("3","3"),("4","4")] 
 
 
 
