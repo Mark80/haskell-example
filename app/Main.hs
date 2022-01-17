@@ -1,6 +1,8 @@
 module Main where
 
-import Util
-
 main :: IO ()
-main = do putStrLn "Hello"
+main = do
+  content <- readFile "/Users/marco.tosini/projects/haskell-example/src/Exercise.hs"
+  saluto <- return "Hello"
+  putStrLn content 
+  putStrLn saluto
