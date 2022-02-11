@@ -16,4 +16,5 @@ spec = do
     it "reverse list" $ rev2 [1,2,3,4,5]  `shouldBe` [5,4,3,2,1]
     it "is palindrme" $ isPalindrome [1,2,3,2,1]  `shouldBe` True
     it "flatten" $ flatten (List [(Elem 1), List [(Elem 2),(Elem 3),(Elem 4)]])  `shouldBe` [1,2,3,4]
-    it "pack" $ pack [1,1,2,3,3,5,5,5,5,5,5,5,8,9,10]   `shouldBe` [1,2,3,5,8,9,10]
+    it "compress" $ compress [1,1,2,3,3,5,5,5,5,5,5,5,8,9,10]   `shouldBe` [1,2,3,5,8,9,10]
+    it "encode" $ encode [1,1,2,3,3,5,5,5] []  `shouldBe` [(2,1),(1,2),(2,3),(3,5)]

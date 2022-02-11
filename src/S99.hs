@@ -44,10 +44,16 @@ flatten l = case l of
   List (x : xs) -> flatten x ++ flatten (List xs)
   List [] -> []
 
+compress :: Eq a => [a] -> [a]
+compress list = case list of
+  [] -> []
+  [a] -> [a]
+  x : y : xs -> if x == y then compress (y : xs) else x : compress (y : xs)
+  
+  
 
-pack :: Eq a => [a] -> [a]
-pack list = case list of 
-               [] -> []
-               [a] -> [a]
-               x:y:xs -> if x == y then pack (y:xs) else x: pack (y:xs)
-                  
+encode :: Eq a =>  [a] -> [(Int, a)] -> [(Int, a)]
+encode list acc = case (list, acc) of
+  ([], _) -> rev acc
+  (x : xs, []) -> encode xs ([(1, x)])
+  (x : xs, y : ys) -> if (snd y) == x then encode xs (((fst y + 1), x) : ys) else encode xs ((1, x) : y : ys)
