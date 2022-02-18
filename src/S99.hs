@@ -57,3 +57,9 @@ encode list acc = case (list, acc) of
   ([], _) -> rev acc
   (x : xs, []) -> encode xs ([(1, x)])
   (x : xs, y : ys) -> if (snd y) == x then encode xs (((fst y + 1), x) : ys) else encode xs ((1, x) : y : ys)
+
+duplicate :: [a] -> [a]
+duplicate list = dup list []
+                    where
+                      dup [] a = a
+                      dup (x : xs) a = a ++ (x : x : (duplicate xs))

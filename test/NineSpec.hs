@@ -18,3 +18,4 @@ spec = do
     it "flatten" $ flatten (List [(Elem 1), List [(Elem 2),(Elem 3),(Elem 4)]])  `shouldBe` [1,2,3,4]
     it "compress" $ compress [1,1,2,3,3,5,5,5,5,5,5,5,8,9,10]   `shouldBe` [1,2,3,5,8,9,10]
     it "encode" $ encode [1,1,2,3,3,5,5,5] []  `shouldBe` [(2,1),(1,2),(2,3),(3,5)]
+    it "duplicate" $ duplicate [1,2,3]  `shouldBe` [1,1,2,2,3,3]
