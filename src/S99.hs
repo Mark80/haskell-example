@@ -63,3 +63,13 @@ duplicate list = dup list []
                     where
                       dup [] a = a
                       dup (x : xs) a = a ++ (x : x : (duplicate xs))
+                      
+duplicateN :: [a] -> Int -> Int -> [a]
+duplicateN list n q = dup list [] n q
+                    where
+                      dup [] a _ _  = a
+                      dup (_ : xs) a 0 p = a ++ (duplicateN xs p p) 
+                      dup (x : xs) a r p  = a ++ (x : (duplicateN (x: xs) (r - 1) p))
+               
+                    
+                      

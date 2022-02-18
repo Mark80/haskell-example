@@ -19,3 +19,4 @@ spec = do
     it "compress" $ compress [1,1,2,3,3,5,5,5,5,5,5,5,8,9,10]   `shouldBe` [1,2,3,5,8,9,10]
     it "encode" $ encode [1,1,2,3,3,5,5,5] []  `shouldBe` [(2,1),(1,2),(2,3),(3,5)]
     it "duplicate" $ duplicate [1,2,3]  `shouldBe` [1,1,2,2,3,3]
+    it "duplicate N" $ duplicateN [1,2,3] 3 3 `shouldBe` [1,1,1,2,2,2,3,3,3]
